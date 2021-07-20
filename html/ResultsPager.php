@@ -337,7 +337,8 @@ require_once __DIR__ . "/../includes/i18n.php";
  * @author Darren Edale
  * @package libequit
  */
-class ResultsPager extends PageElement {
+class ResultsPager extends PageElement
+{
 	/** @var int The default number of rows per page. */
 	public const DefaultPageSize = 50;
 
@@ -416,7 +417,7 @@ class ResultsPager extends PageElement {
 	/** @var array The built-in supported output MIME types. */
 	private static $s_supportedMimeTypes = [
 		"text/html" => "html",
-		"text/csv" => "csv",
+		"text/csv"  => "csv",
 	];
 
 	/** @var PDOStatement|null The results being paged. */
@@ -472,12 +473,13 @@ class ResultsPager extends PageElement {
 	 * @param $results PDOStatement|null _optional_ The results to page.
 	 * @param $id string _optional_ The ID for the results pager.
 	 */
-	public function __construct(?PDOStatement $results = null, $id = "") {
+	public function __construct(?PDOStatement $results = null, $id = "")
+	{
 		// returns immediately if constructor has previously been called from fetchCachedPager() already. While not
 		// perfectly efficient, it's sufficiently so
 		self::purgeExpiredCacheEntries();
 
-		if(empty($id)) {
+		if (empty($id)) {
 			$id = self::generateUid();
 		}
 
@@ -513,66 +515,64 @@ class ResultsPager extends PageElement {
 	 * The current purge schedule is to remove all cache files that have not been accessed for 30 minutes, every 30
 	 * minutes.
 	 */
-	private static function purgeExpiredCacheEntries(): void {
+	private static function purgeExpiredCacheEntries(): void
+	{
 		// only purge once per run - multiple ResultsPager objects created during processing of a request will result in
 		// at most one cache purge
 		static $s_done = false;
 
-		if($s_done) {
+		if ($s_done) {
 			return;
 		}
 
 		$s_done = true;
 
 		/* check whether internal purging turned off in config file */
-		if(defined("class.resultspager.cache.purge.enabled") && !constant("class.resultspager.cache.purge.enabled")) {
+		if (defined("class.resultspager.cache.purge.enabled") && !constant("class.resultspager.cache.purge.enabled")) {
 			return;
 		}
 
-		$cachePath         = self::cacheDirectory();
+		$cachePath = self::cacheDirectory();
 		$lastPurgeTimePath = "$cachePath/lastpurgetime";
 
-		if(file_exists($lastPurgeTimePath)) {
+		if (file_exists($lastPurgeTimePath)) {
 			$lastPurgeTime = @file_get_contents($lastPurgeTimePath);
 
-			if(false === $lastPurgeTime) {
+			if (false === $lastPurgeTime) {
 				AppLog::error("file \"$lastPurgeTimePath\" could not be read", __FILE__, __LINE__, __FUNCTION__);
 				$lastPurgeTime = 0;
-			}
-			else if(!is_numeric($lastPurgeTime)) {
+			} else if (!is_numeric($lastPurgeTime)) {
 				AppLog::error("file \"$lastPurgeTimePath\" contains invalid content", __FILE__, __LINE__, __FUNCTION__);
 				$lastPurgeTime = 0;
-			}
-			else {
+			} else {
 				$lastPurgeTime = intval($lastPurgeTime);
 			}
-		}
-		else {
+		} else {
 			AppLog::warning("file \"$lastPurgeTimePath\" not found", __FILE__, __LINE__, __FUNCTION__);
 			$lastPurgeTime = 0;
 		}
 
 		$thisPurgeTime = microtime(true);
 
-		if($lastPurgeTime < ($thisPurgeTime - self::ResultsCachePurgeInterval)) {
+		if ($lastPurgeTime < ($thisPurgeTime - self::ResultsCachePurgeInterval)) {
 			// do a purge
 			$paths = glob("$cachePath/*.meta", GLOB_NOSORT);
 
-			foreach($paths as $filePath) {
-				if(!preg_match("/resultspager-([0-9a-f]{32})\.meta$/", $filePath, $caps)) {
+			foreach ($paths as $filePath) {
+				if (!preg_match("/resultspager-([0-9a-f]{32})\.meta$/", $filePath, $caps)) {
 					AppLog::error("rogue file found in results pager cache directory: \"$filePath\"", __FILE__, __LINE__, __FUNCTION__);
 					continue;
 				}
 
 				$fileTime = fileatime($filePath);
 
-				if($fileTime < $thisPurgeTime - self::ResultsCacheExpiryTimeout) {
+				if ($fileTime < $thisPurgeTime - self::ResultsCacheExpiryTimeout) {
 					$id = $caps[1];
 
 					$entryFiles = glob("$cachePath/*$id.*", GLOB_NOSORT);
 
-					foreach($entryFiles as $entryFilePath) {
-						if(!@unlink($entryFilePath)) {
+					foreach ($entryFiles as $entryFilePath) {
+						if (!@unlink($entryFilePath)) {
 							AppLog::error("...cache file \"$entryFilePath\" for cache entry \"$id\" could not be deleted", __FILE__, __LINE__, __FUNCTION__);
 						}
 					}
@@ -594,7 +594,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string] The list of supported MIME types.
 	 */
-	public function supportedMimeTypes(): array {
+	public function supportedMimeTypes(): array
+	{
 		return array_keys(self::$s_supportedMimeTypes);
 	}
 
@@ -603,7 +604,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return Request The paging request, or _null_ if no paging request has been set.
 	 */
-	public function pagingRequest(): ?Request {
+	public function pagingRequest(): ?Request
+	{
 		return $this->m_pagingRequest;
 	}
 
@@ -619,7 +621,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $req ?Request The request to use.
 	 */
-	public function setPagingRequest(?Request $req): void {
+	public function setPagingRequest(?Request $req): void
+	{
 		$this->m_pagingRequest = $req;
 	}
 
@@ -628,7 +631,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return int The page size.
 	 */
-	public function pageSize(): int {
+	public function pageSize(): int
+	{
 		return $this->m_pageSize;
 	}
 
@@ -642,8 +646,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if the page size was set, _false_ if the size was invalid.
 	 */
-	public function setPageSize(int $size): bool {
-		if(0 > $size) {
+	public function setPageSize(int $size): bool
+	{
+		if (0 > $size) {
 			AppLog::error("invalid page size: $size", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
@@ -657,7 +662,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return int The page number.
 	 */
-	public function pageNumber(): int {
+	public function pageNumber(): int
+	{
 		return $this->m_pageNumber;
 	}
 
@@ -670,8 +676,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if the page number was set, _false_ otherwise.
 	 */
-	public function setPageNumber(int $number): bool {
-		if(1 > $number) {
+	public function setPageNumber(int $number): bool
+	{
+		if (1 > $number) {
 			AppLog::error("invalid page number: $number", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
@@ -687,7 +694,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The ID.
 	 */
-	public function resultsId(): string {
+	public function resultsId(): string
+	{
 		return $this->m_resultsId;
 	}
 
@@ -698,7 +706,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $name string The name to use.
 	 */
-	public function setName(string $name): void {
+	public function setName(string $name): void
+	{
 		$this->m_name = $name;
 		$this->cacheMetaData();
 	}
@@ -708,7 +717,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The name.
 	 */
-	public function name(): string {
+	public function name(): string
+	{
 		return $this->m_name;
 	}
 
@@ -718,7 +728,8 @@ class ResultsPager extends PageElement {
 	 * @return PDOStatement|null The results, or _null_ if no results have been
 	 * set.
 	 */
-	public function results(): ?PDOStatement {
+	public function results(): ?PDOStatement
+	{
 		return $this->m_results;
 	}
 
@@ -732,30 +743,30 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $results PDOStatement|null The results to display.
 	 */
-	public function setResults(?PDOStatement $results): void {
-		if(is_null($results)) {
-			$this->m_resultsId       = "";
-			$this->m_results         = $results;
-			$this->m_rowCount        = 0;
-			$this->m_checkedRows     = [];
-			$this->m_hiddenColumns   = [];
-			$this->m_columnTitles    = [];
-			$this->m_groupColumns    = [];
+	public function setResults(?PDOStatement $results): void
+	{
+		if (is_null($results)) {
+			$this->m_resultsId = "";
+			$this->m_results = $results;
+			$this->m_rowCount = 0;
+			$this->m_checkedRows = [];
+			$this->m_hiddenColumns = [];
+			$this->m_columnTitles = [];
+			$this->m_groupColumns = [];
 			$this->m_columnCallbacks = [];
 			$this->cacheResults();
 			$this->cacheMetaData();
 			$this->cacheCheckedRows();
 			$this->cacheHiddenColumns();
 			$this->cacheColumnTitles();
-		}
-		else {
-			$this->m_resultsId       = md5(rand() . "" . microtime(true));
-			$this->m_results         = $results;
-			$this->m_rowCount        = 0;
-			$this->m_checkedRows     = [];
-			$this->m_hiddenColumns   = [];
-			$this->m_columnTitles    = [];
-			$this->m_groupColumns    = [];
+		} else {
+			$this->m_resultsId = md5(rand() . "" . microtime(true));
+			$this->m_results = $results;
+			$this->m_rowCount = 0;
+			$this->m_checkedRows = [];
+			$this->m_hiddenColumns = [];
+			$this->m_columnTitles = [];
+			$this->m_groupColumns = [];
 			$this->m_columnCallbacks = [];
 			/* cacheResults() ensures m_rowCount is populated, so *must* call
 			 * cacheResults() before cacheMetaData() */
@@ -772,7 +783,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return int The row count. This will be 0 if no results have been set.
 	 */
-	public function rowCount(): int {
+	public function rowCount(): int
+	{
 		return $this->m_rowCount;
 	}
 
@@ -781,7 +793,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if check boxes are visible, _false_ otherwise.
 	 */
-	public function checkboxesVisible(): bool {
+	public function checkboxesVisible(): bool
+	{
 		return $this->m_checkboxesVisible;
 	}
 
@@ -790,7 +803,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $v boolean Whether or not the check boxes should be visible.
 	 */
-	public function setCheckboxesVisible(bool $v): void {
+	public function setCheckboxesVisible(bool $v): void
+	{
 		$this->m_checkboxesVisible = $v;
 	}
 
@@ -805,17 +819,17 @@ class ResultsPager extends PageElement {
 	 * @return bool _true_ if the row was checked/unchecked as requested, _false_ if the index was invalid or could not
 	 * be marked as requested.
 	 */
-	public function setRowChecked(int $i, bool $checked): bool {
-		if($checked) {
-			if(!in_array($i, $this->m_checkedRows)) {
+	public function setRowChecked(int $i, bool $checked): bool
+	{
+		if ($checked) {
+			if (!in_array($i, $this->m_checkedRows)) {
 				$this->m_checkedRows[] = $i;
 				$this->cacheCheckedRows();
 			}
-		}
-		else {
+		} else {
 			$pos = array_search($i, $this->m_checkedRows);
 
-			if(false !== $pos) {
+			if (false !== $pos) {
 				array_splice($this->m_checkedRows, $pos, 1);
 				$this->cacheCheckedRows();
 			}
@@ -829,7 +843,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array(int) The checked rows. The array will be empty if no rows are checked.
 	 */
-	public function checkedRows(): array {
+	public function checkedRows(): array
+	{
 		return $this->m_checkedRows;
 	}
 
@@ -842,7 +857,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if the row is checked, _false_ if not or if the row index is invalid or out of bounds.
 	 */
-	public function isRowChecked(int $i): bool {
+	public function isRowChecked(int $i): bool
+	{
 		return in_array($i, $this->m_checkedRows);
 	}
 
@@ -851,8 +867,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $col string The name of the column to hide.
 	 */
-	public function hideColumn(string $col): void {
-		if(!in_array($col, $this->m_hiddenColumns)) {
+	public function hideColumn(string $col): void
+	{
+		if (!in_array($col, $this->m_hiddenColumns)) {
 			$this->m_hiddenColumns[] = $col;
 			$this->cacheHiddenColumns();
 		}
@@ -863,15 +880,16 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $col string The name of the column to unhide.
 	 */
-	public function unhideColumn(string $col): void {
+	public function unhideColumn(string $col): void
+	{
 		$changed = false;
 
-		while(false !== ($i = array_search($col, $this->m_hiddenColumns))) {
+		while (false !== ($i = array_search($col, $this->m_hiddenColumns))) {
 			array_splice($this->m_hiddenColumns, $i, 1);
 			$changed = true;
 		}
 
-		if($changed) {
+		if ($changed) {
 			$this->cacheHiddenColumns();
 		}
 	}
@@ -881,12 +899,14 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string] The list of hidden columns.
 	 */
-	protected function hiddenColumns(): array {
+	protected function hiddenColumns(): array
+	{
 		return $this->m_hiddenColumns;
 	}
 
 	/** Set all columns to be visible. */
-	public function unhideAllColumns(): void {
+	public function unhideAllColumns(): void
+	{
 		$this->m_hiddenColumns = [];
 		$this->cacheHiddenColumns();
 	}
@@ -903,8 +923,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if the column title was set (or unset), _false_ if not.
 	 */
-	public function setColumnTitle(string $col, $title) {
-		if(is_null($title) || is_string($title) || $title instanceof PageElement) {
+	public function setColumnTitle(string $col, $title)
+	{
+		if (is_null($title) || is_string($title) || $title instanceof PageElement) {
 			$this->m_columnTitles[$col] = $title;
 			$this->cacheColumnTitles();
 			return true;
@@ -934,7 +955,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param string ...$columns The columns to use for grouping.
 	 */
-	public function setGroupColumns(string ... $columns): void {
+	public function setGroupColumns(string ...$columns): void
+	{
 		// variadic enforces type so no need to check array content
 		$this->m_groupColumns = $columns;
 	}
@@ -944,7 +966,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array The list of columns.
 	 */
-	public function groupColumns(): array {
+	public function groupColumns(): array
+	{
 		return $this->m_groupColumns;
 	}
 
@@ -956,7 +979,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string=>string] The column titles.
 	 */
-	protected function columnTitles(): array {
+	protected function columnTitles(): array
+	{
 		return $this->m_columnTitles;
 	}
 
@@ -980,8 +1004,9 @@ class ResultsPager extends PageElement {
 	 * @param $columnName string The column for which to add a callback.
 	 * @param $callback callable The callback to use.
 	 */
-	public function addColumnCallback(string $columnName, callable $callback): void {
-		if(!isset($this->m_columnCallbacks[$columnName])) {
+	public function addColumnCallback(string $columnName, callable $callback): void
+	{
+		if (!isset($this->m_columnCallbacks[$columnName])) {
 			$this->m_columnCallbacks[$columnName] = [];
 		}
 
@@ -997,7 +1022,8 @@ class ResultsPager extends PageElement {
 	 * @param $type string The MIME type.
 	 * @param $options array[string=>mixed] The options.
 	 */
-	public function setMimeTypeOptions(string $type, array $options): void {
+	public function setMimeTypeOptions(string $type, array $options): void
+	{
 		$this->m_mimeTypeOptions[$type] = $options;
 	}
 
@@ -1011,11 +1037,11 @@ class ResultsPager extends PageElement {
 	 * @param $option string The option name.
 	 * @param $value mixed The value for the option.
 	 */
-	public function setMimeTypeOption(string $type, string $option, $value): void {
-		if(!isset($this->m_mimeTypeOptions[$type])) {
+	public function setMimeTypeOption(string $type, string $option, $value): void
+	{
+		if (!isset($this->m_mimeTypeOptions[$type])) {
 			$this->m_mimeTypeOptions[$type] = [$option => $value];
-		}
-		else {
+		} else {
 			$this->m_mimeTypeOptions[$type][$option] = $value;
 		}
 	}
@@ -1028,8 +1054,9 @@ class ResultsPager extends PageElement {
 	 * @param $type string The MIME type.
 	 * @param $option string The option name.
 	 */
-	public function unsetMimeTypeOption(string $type, string $option): void {
-		if(isset($this->m_mimeTypeOptions[$type])) {
+	public function unsetMimeTypeOption(string $type, string $option): void
+	{
+		if (isset($this->m_mimeTypeOptions[$type])) {
 			unset($this->m_mimeTypeOptions[$type][$option]);
 		}
 	}
@@ -1042,7 +1069,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return mixed The option value if the option was found, _null_ if not.
 	 */
-	public function mimeTypeOption(string $type, string $option){
+	public function mimeTypeOption(string $type, string $option)
+	{
 		return (isset($this->m_mimeTypeOptions[$type][$option]) ? $this->m_mimeTypeOptions[$type][$option] : null);
 	}
 
@@ -1055,7 +1083,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string=>mixed] The options.
 	 */
-	public function mimeTypeOptions(string $type): array {
+	public function mimeTypeOptions(string $type): array
+	{
 		return (isset($this->m_mimeTypeOptions[$type]) ? $this->m_mimeTypeOptions[$type] : []);
 	}
 
@@ -1074,13 +1103,13 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return mixed The value resulting from the processing carried out by all of the callbacks.
 	 */
-	protected function doColumnCallbacks($value, string $column, array $row, string $mimeType = "text/html") {
-		if(isset($this->m_columnCallbacks[$column])) {
-			foreach($this->m_columnCallbacks[$column] as $callback) {
-				if(is_callable($callback, false)) {
+	protected function doColumnCallbacks($value, string $column, array $row, string $mimeType = "text/html")
+	{
+		if (isset($this->m_columnCallbacks[$column])) {
+			foreach ($this->m_columnCallbacks[$column] as $callback) {
+				if (is_callable($callback, false)) {
 					$value = $callback($value, $column, $row, $mimeType);
-				}
-				else {
+				} else {
 					AppLog::error("found uncallable callback: " . stringify($callback), __FILE__, __LINE__, __FUNCTION__);
 				}
 			}
@@ -1096,7 +1125,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * All cached information about the results and the pager's state is removed.
 	 */
-	protected function clearCache() {
+	protected function clearCache()
+	{
 		$this->removeCacheFile("results");
 		$this->removeCacheFile("checked");
 		$this->removeCacheFile("classname");
@@ -1114,52 +1144,53 @@ class ResultsPager extends PageElement {
 	 *
 	 * @param $ext string The type of the cache file to remove.
 	 */
-	protected function removeCacheFile(string $ext): void {
-		if(false !== strpos("..", $ext)) {
+	protected function removeCacheFile(string $ext): void
+	{
+		if (false !== strpos("..", $ext)) {
 			AppLog::error("aborted cache file removal - found \"..\" in extension", __FILE__, __LINE__, __FUNCTION__);
 			return;
 		}
 
-		if("results" == $ext) {
+		if ("results" == $ext) {
 			$pathBase = self::cacheFilePath($this->resultsId() . ".");
-			$i        = 0;
+			$i = 0;
 
 			// keep attempting to delete cache chunk files until an index is not found.
-			while(true) {
+			while (true) {
 				$path = $pathBase . sprintf("%04d.results", $i);
 
-				if(!file_exists($path)) {
+				if (!file_exists($path)) {
 					break;
 				}
 
-				if(is_file($path) && is_writable($path)) {
+				if (is_file($path) && is_writable($path)) {
 					@unlink($path);
 				}
 
 				++$i;
 			};
-		}
-		else {
+		} else {
 			$path = self::cacheFilePath($this->resultsId(), $ext);
 
-			if(is_file($path) && is_writable($path)) {
+			if (is_file($path) && is_writable($path)) {
 				@unlink($path);
 			}
 		}
 	}
 
 	/** Cache the results, if they are not cached already. */
-	protected function cacheResults(): void {
+	protected function cacheResults(): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			AppLog::warning("no ID - can't cache results", __FILE__, __LINE__, __FUNCTION__);
 			return;
 		}
 
 		$path = self::cacheFilePath($resultsId);
 
-		if(file_exists("$path.0000.results")) {
+		if (file_exists("$path.0000.results")) {
 			AppLog::warning("cache path \"$path\" already in use", __FILE__, __LINE__, __FUNCTION__);
 			return;
 		}
@@ -1168,16 +1199,16 @@ class ResultsPager extends PageElement {
 		@touch("$path.0000.results");
 		$results = $this->results();
 
-		if($results instanceof PDOStatement) {
-			$rowIndex   = 0;
+		if ($results instanceof PDOStatement) {
+			$rowIndex = 0;
 			$chunkIndex = 0;
-			$myData     = [];
+			$myData = [];
 
-			while(!!($myRow = $results->fetch(PDO::FETCH_ASSOC))) {
+			while (!!($myRow = $results->fetch(PDO::FETCH_ASSOC))) {
 				$myData[] = $myRow;
 				++$rowIndex;
 
-				if(0 == $rowIndex % self::ResultsCacheFileChunkSize) {
+				if (0 == $rowIndex % self::ResultsCacheFileChunkSize) {
 					$this->writeCachedResultsData($myData, $chunkIndex);
 					++$chunkIndex;
 					$myData = [];
@@ -1185,7 +1216,7 @@ class ResultsPager extends PageElement {
 			}
 
 			// write any partial chunk left over after the end of the last chunk that was written to disk
-			if(0 != $rowIndex % self::ResultsCacheFileChunkSize) {
+			if (0 != $rowIndex % self::ResultsCacheFileChunkSize) {
 				$this->writeCachedResultsData($myData, $chunkIndex);
 			}
 
@@ -1208,42 +1239,44 @@ class ResultsPager extends PageElement {
 	 * less likely to cause the PHP process to exhaust its *memory_limit* ini setting trying to store all the data for
 	 * all rows in an array.
 	 */
-	private function writeCachedResultsData(array $data, int $chunkIndex): void {
+	private function writeCachedResultsData(array $data, int $chunkIndex): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			return;
 		}
 
 		$path = self::cacheFilePath($resultsId, sprintf("%04d", $chunkIndex) . ".results");
 
-		if(false === file_put_contents($path, serialize($data))) {
+		if (false === file_put_contents($path, serialize($data))) {
 			AppLog::error("failed to write file to cache search results (data file, id = $resultsId, chunk = $chunkIndex)", __FILE__, __LINE__, __FUNCTION__);
 			return;
 		}
 
-		if(!@chmod($path, 0770)) {
+		if (!@chmod($path, 0770)) {
 			AppLog::warning("failed to set permissions for search results checked rows cache file (id = $resultsId, chunk = $chunkIndex)", __FILE__, __LINE__, __FUNCTION__);
 		}
 	}
 
 	/** Write the list of checked rows to its cache file. */
-	protected function cacheCheckedRows(): void {
+	protected function cacheCheckedRows(): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			return;
 		}
 
-		if(is_array($this->m_checkedRows)) {
+		if (is_array($this->m_checkedRows)) {
 			$path = self::cacheFilePath($resultsId, "checked");
 
-			if(false === file_put_contents($path, serialize($this->m_checkedRows))) {
+			if (false === file_put_contents($path, serialize($this->m_checkedRows))) {
 				AppLog::error("failed to write file to cache search results checked rows (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 				return;
 			}
 
-			if(!@chmod($path, 0770)) {
+			if (!@chmod($path, 0770)) {
 				AppLog::warning("failed to set permissions for search results checked rows cache file (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			}
 		}
@@ -1256,64 +1289,67 @@ class ResultsPager extends PageElement {
 	 * - the name of the result set
 	 * - the number of rows in the result set
 	 */
-	protected function cacheMetaData(): void {
+	protected function cacheMetaData(): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			return;
 		}
 
 		$path = self::cacheFilePath($resultsId, "meta");
 
-		if(false === file_put_contents($path, serialize([get_class($this), $this->m_name, $this->m_rowCount]))) {
+		if (false === file_put_contents($path, serialize([get_class($this), $this->m_name, $this->m_rowCount]))) {
 			AppLog::error("failed to write file to cache pager meta data (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			return;
 		}
 
-		if(!@chmod($path, 0770)) {
+		if (!@chmod($path, 0770)) {
 			AppLog::warning("failed to set permissions for search results meta data cache file (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 		}
 	}
 
 	/** Write the list of hidden columns to its cache file. */
-	protected function cacheHiddenColumns(): void {
+	protected function cacheHiddenColumns(): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			return;
 		}
 
-		if(is_array($this->m_hiddenColumns)) {
+		if (is_array($this->m_hiddenColumns)) {
 			$path = self::cacheFilePath($resultsId, "hidden");
 
-			if(false === file_put_contents($path, serialize($this->m_hiddenColumns))) {
+			if (false === file_put_contents($path, serialize($this->m_hiddenColumns))) {
 				AppLog::error("failed to write file to cache hidden columns (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 				return;
 			}
 
-			if(!@chmod($path, 0770)) {
+			if (!@chmod($path, 0770)) {
 				AppLog::warning("failed to set permissions for search results hidden columns cache file (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			}
 		}
 	}
 
 	/** Write the list of column titles to its cache file. */
-	protected function cacheColumnTitles(): void {
+	protected function cacheColumnTitles(): void
+	{
 		$resultsId = $this->resultsId();
 
-		if(empty($resultsId)) {
+		if (empty($resultsId)) {
 			return;
 		}
 
-		if(is_array($this->m_columnTitles)) {
+		if (is_array($this->m_columnTitles)) {
 			$path = self::cacheFilePath($resultsId, "columntitles");
 
-			if(false === file_put_contents($path, serialize($this->m_columnTitles))) {
+			if (false === file_put_contents($path, serialize($this->m_columnTitles))) {
 				AppLog::error("failed to write file to cache column titles (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 				return;
 			}
 
-			if(!@chmod($path, 0770)) {
+			if (!@chmod($path, 0770)) {
 				AppLog::warning("failed to set permissions for search results column titles cache file (id = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			}
 		}
@@ -1339,7 +1375,8 @@ class ResultsPager extends PageElement {
 	 * @return ResultsPager|null The reconstituted cached pager, or _null_ if the pager could not be rebuilt (e.g. if
 	 * the ID provided is not valid).
 	 */
-	public static function fetchCachedPager(string $resultsId, ?string $className = ""): ?ResultsPager {
+	public static function fetchCachedPager(string $resultsId, ?string $className = ""): ?ResultsPager
+	{
 		/* we make this call here so that the cache is purged before the meta
 		 * data is read, since reading the meta data to retrieve the class
 		 * name will update the atime on the metadata cache file, which will in
@@ -1349,21 +1386,21 @@ class ResultsPager extends PageElement {
 		 */
 		self::purgeExpiredCacheEntries();
 
-		if(empty($className)) {
+		if (empty($className)) {
 			$metaData = self::readCachedMetaData($resultsId);
 
-			if(!isset($metaData)) {
+			if (!isset($metaData)) {
 				AppLog::error("failed to read results meta data for results (ID = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 				return null;
 			}
 
-			[$className, , ] = $metaData;
+			[$className, ,] = $metaData;
 			unset($metaData);
 		}
 
 		// could use reflection API here?
 		// calling is_subclass_of() automatically invokes __autoload()
-		if(empty($className) || (ResultsPager::class != $className && !is_subclass_of($className, ResultsPager::class))) {
+		if (empty($className) || (ResultsPager::class != $className && !is_subclass_of($className, ResultsPager::class))) {
 			AppLog::error("invalid pager class \"$className\", using base class " . ResultsPager::class, __FILE__, __LINE__, __FUNCTION__);
 			$className = ResultsPager::class;
 		}
@@ -1371,7 +1408,7 @@ class ResultsPager extends PageElement {
 		/** @var ResultsPager $ret */
 		$ret = new $className();
 
-		if(!$ret->fromResultsId($resultsId)) {
+		if (!$ret->fromResultsId($resultsId)) {
 			return null;
 		}
 
@@ -1387,10 +1424,11 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string|null The contents of the cache file, or _null_ if the file could not be found or read.
 	 */
-	private static function readCacheFile(string $fileName): ?string {
+	private static function readCacheFile(string $fileName): ?string
+	{
 		$cachePath = self::cacheFilePath($fileName);
 
-		if(!is_readable($cachePath) || !is_file($cachePath)) {
+		if (!is_readable($cachePath) || !is_file($cachePath)) {
 			AppLog::error("invalid or unreadable cache file \"$cachePath\"", __FILE__, __LINE__, __FUNCTION__);
 			return null;
 		}
@@ -1414,16 +1452,17 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string=>mixed]|null The contents of the cache file.
 	 */
-	protected static function readCachedResults(string $id, int $chunkIndex): ?array {
+	protected static function readCachedResults(string $id, int $chunkIndex): ?array
+	{
 		$content = self::readCacheFile("$id." . sprintf("%04d", $chunkIndex) . ".results");
 
-		if(is_null($content)) {
+		if (is_null($content)) {
 			AppLog::error("failed to read content of cache file \"$id." . sprintf("%04d", $chunkIndex) . ".results\"", __FILE__, __LINE__, __FUNCTION__);
 			return null;
 		}
 
 		// cache file can be an empty file (i.e. not a serialised empty array) if results were empty when cached
-		if(empty($content)) {
+		if (empty($content)) {
 			return [];
 		}
 
@@ -1439,10 +1478,11 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[int]|null The checked rows list read from the cache file.
 	 */
-	protected static function readCachedCheckedRows(string $id): ?array {
+	protected static function readCachedCheckedRows(string $id): ?array
+	{
 		$content = self::readCacheFile("$id.checked");
 
-		if(!isset($content)) {
+		if (!isset($content)) {
 			return null;
 		}
 
@@ -1469,10 +1509,11 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array|null The metadata read from the cache file.
 	 */
-	protected static function readCachedMetaData(string $id): ?array {
+	protected static function readCachedMetaData(string $id): ?array
+	{
 		$content = self::readCacheFile("$id.meta");
 
-		if(!isset($content)) {
+		if (!isset($content)) {
 			return null;
 		}
 
@@ -1488,10 +1529,11 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string]|null The hidden columns list read from the cache file.
 	 */
-	protected function readCachedHiddenColumns(string $id): ?array {
+	protected function readCachedHiddenColumns(string $id): ?array
+	{
 		$content = self::readCacheFile("$id.hidden");
 
-		if(!isset($content)) {
+		if (!isset($content)) {
 			return null;
 		}
 
@@ -1507,10 +1549,11 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return array[string=>string]|null The column titles read from the cache file.
 	 */
-	protected static function readCachedColumnTitles(string $id): array {
+	protected static function readCachedColumnTitles(string $id): ?array
+	{
 		$content = self::readCacheFile("$id.columntitles");
 
-		if(!isset($content)) {
+		if (!isset($content)) {
 			return null;
 		}
 
@@ -1526,24 +1569,22 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The cache file directory.
 	 */
-	protected static function cacheDirectory(): string {
+	protected static function cacheDirectory(): string
+	{
 		static $s_dir = null;
 
-		if(is_null($s_dir)) {
-			if(!defined("app.uid")) {
-				$appUid = "unknownapp";
-			}
-			else {
-				$appUid = constant("app.uid");
-			}
+		if (is_null($s_dir)) {
 
-			$s_dir = sys_get_temp_dir() . "/$appUid-pager-cache";
+			if (defined("app.cache.dir"))
+				$s_dir = constant("app.cache.dir");
+			else
+				$s_dir = dirname(dirname(__DIR__)) . '/cache';
 
-			if(!file_exists($s_dir)) {
+			if (!file_exists($s_dir)) {
 				@mkdir($s_dir, 0770);
 			}
 
-			if(!file_exists($s_dir) || !is_dir($s_dir) || !is_writable($s_dir)) {
+			if (!file_exists($s_dir) || !is_dir($s_dir) || !is_writable($s_dir)) {
 				AppLog::error("can't find, create or write to results pager cache directory \"$s_dir\"", __FILE__, __LINE__, __FUNCTION__);
 				trigger_error(tr("A fatal application error occurred (%1). Please contact the administrator.", __FILE__, __LINE__, "ERR_RESULTSPAGER_NO_CACHE_DIR"), E_USER_ERROR);
 			}
@@ -1572,7 +1613,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The path to the cache file.
 	 */
-	protected static function cacheFilePath(string $resultsId, string $suffix = ""): string {
+	protected static function cacheFilePath(string $resultsId, string $suffix = ""): string
+	{
 		return self::cacheDirectory() . "/resultspager-$resultsId" . (empty($suffix) ? "" : ".$suffix");
 	}
 
@@ -1584,47 +1626,48 @@ class ResultsPager extends PageElement {
 	 * @return bool _true_ if the pager was repopulated from the cache, _false_ if it could not be rebuilt (e.g. the ID
 	 * was not valid).
 	 */
-	private function fromResultsId(string $resultsId): bool {
+	private function fromResultsId(string $resultsId): bool
+	{
 		$path = self::cacheFilePath($resultsId);
 
-		if(!is_readable("$path.0000.results")) {
+		if (!is_readable("$path.0000.results")) {
 			AppLog::error("cached results pager with ID \"$resultsId\" (file \"$path.0000.results\") not found", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
 
 		$checkedRows = self::readCachedCheckedRows($resultsId);
 
-		if(!isset($checkedRows)) {
+		if (!isset($checkedRows)) {
 			AppLog::error("failed to read checked rows list for results pager (ID = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
 
 		$metaData = self::readCachedMetaData($resultsId);
 
-		if(!isset($metaData)) {
+		if (!isset($metaData)) {
 			AppLog::error("failed to read meta data for results pager (ID = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
 
 		$hiddenColumns = self::readCachedHiddenColumns($resultsId);
 
-		if(!isset($hiddenColumns)) {
+		if (!isset($hiddenColumns)) {
 			AppLog::error("failed to hidden columns list for results pager (ID = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
 
-		$columnTitles  = self::readCachedColumnTitles($resultsId);
+		$columnTitles = self::readCachedColumnTitles($resultsId);
 
-		if(!isset($columnTitles)) {
+		if (!isset($columnTitles)) {
 			AppLog::error("failed to read column titles for results pager (ID = $resultsId)", __FILE__, __LINE__, __FUNCTION__);
 			return false;
 		}
 
-		$this->m_resultsId   = $resultsId;
+		$this->m_resultsId = $resultsId;
 		$this->m_checkedRows = $checkedRows;
 		[, $this->m_name, $this->m_rowCount] = $metaData;
 		$this->m_hiddenColumns = $hiddenColumns;
-		$this->m_columnTitles  = $columnTitles;
+		$this->m_columnTitles = $columnTitles;
 		return true;
 	}
 
@@ -1633,7 +1676,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string|PageElement|null The content to display (_null_ if none has been set).
 	 */
-	public function noDataContent() {
+	public function noDataContent()
+	{
 		return $this->m_noDataContent;
 	}
 
@@ -1644,8 +1688,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return bool _true_ if the content was set, _false_ otherwise.
 	 */
-	public function setNoDataContent($content): bool {
-		if(is_string($content) || is_null($content) || $content instanceof PageElement) {
+	public function setNoDataContent($content): bool
+	{
+		if (is_string($content) || is_null($content) || $content instanceof PageElement) {
 			$this->m_noDataContent = $content;
 			return true;
 		}
@@ -1671,19 +1716,20 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The HTML for the page index.
 	 */
-	protected function emitPageIndex(int $start, int $end, int $distance = 5): string {
+	protected function emitPageIndex(int $start, int $end, int $distance = 5): string
+	{
 		$html = "";
-		$req  = $this->pagingRequest();
+		$req = $this->pagingRequest();
 
-		if($req instanceof Request) {
-			$pageSize   = $this->pageSize();
+		if ($req instanceof Request) {
+			$pageSize = $this->pageSize();
 			$pageNumber = $this->pageNumber();
 
-			if(!$pageSize) {
+			if (!$pageSize) {
 				$pageSize = self::DefaultPageSize;
 			}
 
-			if(!$pageNumber) {
+			if (!$pageNumber) {
 				$pageNumber = self::DefaultPageNumber;
 			}
 
@@ -1695,32 +1741,29 @@ class ResultsPager extends PageElement {
 			$req->setUrlParameter("pager_pagenumber", "" . ($pageNumber - 1));
 			$html .= "<li class=\"previous\">";
 
-			if(1 < $pageNumber) {
+			if (1 < $pageNumber) {
 				$html .= "<a href=\"" . $req->url() . "\" title=\"" . html(tr("Show the previous page of results.")) . "\"><img class=\"icon\" src=\"images/icons/previous.png\" alt=\"&lt;\" /></a>";
-			}
-			else {
+			} else {
 				/** @noinspection HtmlUnknownTarget */
 				$html .= "<img class=\"disabled-icon\" src=\"images/icons/previous.png\" alt=\"&lt;\" />";
 			}
 
 			$html .= "</li>\n";
 
-			for($i = $start; $i <= $end; ++$i) {
-				if($i == $pageNumber) {
+			for ($i = $start; $i <= $end; ++$i) {
+				if ($i == $pageNumber) {
 					$html .= "<li class=\"current\">$i</li>\n";
 
 					// ensure we do ellipsis for distant pages after current page even if we've also done one before
 					// current page
 					$doneEllipsis = false;
-				}
-				// always show first, last and n pages either side of current page; otherwise elide "distant" pages
-				else if($start != $i && $end != $i && abs($i - $pageNumber) > $distance) {
-					if(!$doneEllipsis) {
-						$html         .= "<li>&hellip;</li>\n";
+				} // always show first, last and n pages either side of current page; otherwise elide "distant" pages
+				else if ($start != $i && $end != $i && abs($i - $pageNumber) > $distance) {
+					if (!$doneEllipsis) {
+						$html .= "<li>&hellip;</li>\n";
 						$doneEllipsis = true;
 					}
-				}
-				else {
+				} else {
 					$req->setUrlParameter("pager_pagenumber", "$i");
 					$html .= "<li><a href=\"{$req->url()}\">$i</a></li>\n";
 				}
@@ -1729,10 +1772,9 @@ class ResultsPager extends PageElement {
 			$req->setUrlParameter("pager_pagenumber", "" . ($pageNumber + 1));
 			$html .= "<li class=\"next\">";
 
-			if($end > $pageNumber) {
+			if ($end > $pageNumber) {
 				$html .= "<a href=\"" . $req->url() . "\" title=\"" . html(tr("Show the next page of results.")) . "\"><img class=\"icon\" src=\"images/icons/next.png\" alt=\"&gt;\" /></a>";
-			}
-			else {
+			} else {
 				/** @noinspection HtmlUnknownTarget */
 				$html .= "<img class=\"disabled-icon\" src=\"images/icons/next.png\" alt=\"&gt;\" />";
 			}
@@ -1750,8 +1792,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The HTML for the checkbox.
 	 */
-	protected function emitCheckbox(int $i): string {
-		if(!is_numeric($i)) {
+	protected function emitCheckbox(int $i): string
+	{
+		if (!is_numeric($i)) {
 			AppLog::error("invalid row index", __FILE__, __LINE__, __FUNCTION__);
 			return "";
 		}
@@ -1770,13 +1813,14 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The HTML-escaped ID.
 	 */
-	protected static function generateHtmlRowId(string $template, array $row): string {
+	protected static function generateHtmlRowId(string $template, array $row): string
+	{
 		$from = [];
-		$to   = [];
+		$to = [];
 
-		foreach($row as $field => $value) {
+		foreach ($row as $field => $value) {
 			$from[] = "{{$field}}";
-			$to[]   = $value;
+			$to[] = $value;
 		}
 
 		return html(str_replace($from, $to, $template));
@@ -1802,104 +1846,102 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The element HTML.
 	 */
-	public function html(int $flags = self::DefaultOutputFlags, array $options = []): string {
+	public function html(int $flags = self::DefaultOutputFlags, array $options = []): string
+	{
 		// m_rowCount is set to the correct value either when setResults() is called or when the cached meta data is
 		// read in fromResultsId(). either way, if we have some results, m_rowCount is correct (unless the cache is
 		// corrupt)
-		$max                 = $this->m_rowCount;
-		$resultsId           = $this->resultsId();
-		$checkedRowsOnly     = ($flags & self::CheckedRowsOnly);
+		$max = $this->m_rowCount;
+		$resultsId = $this->resultsId();
+		$checkedRowsOnly = ($flags & self::CheckedRowsOnly);
 		$noneCheckedMeansAll = ($flags & self::NoCheckedRowsEqualsAllRows);
-		$checkedRowCount     = 0;
-		$doGroups            = !($flags & self::DontGroup);
-		$hideGroupColumns    = $doGroups && !($flags & self::DontHideGroupColumns);
+		$checkedRowCount = 0;
+		$doGroups = !($flags & self::DontGroup);
+		$hideGroupColumns = $doGroups && !($flags & self::DontHideGroupColumns);
 
-		if(is_array($options) && !empty($options)) {
+		if (is_array($options) && !empty($options)) {
 			$options = array_merge($this->mimeTypeOptions("text/html"), $options);
-		}
-		else {
+		} else {
 			$options = $this->mimeTypeOptions("text/html");
 		}
 
 		$haveRowIdTemplate = isset($options["row_id_template"]) && is_string($options["row_id_template"]);
 
-		if(!$checkedRowsOnly) {
-			$pageSize   = $this->pageSize();
+		if (!$checkedRowsOnly) {
+			$pageSize = $this->pageSize();
 			$pageNumber = $this->pageNumber();
 
-			if(is_null($pageSize)) {
+			if (is_null($pageSize)) {
 				$pageSize = self::DefaultPageSize;
-			}
-			else if(0 == $pageSize) {
+			} else if (0 == $pageSize) {
 				$pageSize = max(1, $max);
 			}
 
-			if(!$pageNumber) {
+			if (!$pageNumber) {
 				$pageNumber = self::DefaultPageNumber;
 			}
 
 			// calculate which rows to display
-			$end   = $pageNumber * $pageSize;
+			$end = $pageNumber * $pageSize;
 			$start = $end - $pageSize;
 
-			if($end > $max) {
+			if ($end > $max) {
 				$end = $max;
 			}
 
-			if($start > $max) {
+			if ($start > $max) {
 				$start = $max;
 			}
 
 			$maxPage = ceil(doubleval($max) / doubleval($pageSize));
-		}
-		else {
-			$start           = 0;
-			$end             = $max;
-			$maxPage         = 1;
+		} else {
+			$start = 0;
+			$end = $max;
+			$maxPage = 1;
 			$checkedRowCount = count($this->m_checkedRows);
 		}
 
 		$chunkIndex = intval(floor($start / self::ResultsCacheFileChunkSize));
-		$data       = self::readCachedResults($resultsId, $chunkIndex);
+		$data = self::readCachedResults($resultsId, $chunkIndex);
 
-		if(!is_array($data)) {
+		if (!is_array($data)) {
 			AppLog::error("invalid content in results cache", __FILE__, __LINE__, __FUNCTION__);
 			return "";
 		}
 
-		if($start < $end) {
+		if ($start < $end) {
 			$doCheckboxes = (!$checkedRowsOnly && $this->checkboxesVisible());
 
-			if($doGroups) {
+			if ($doGroups) {
 				// ensure we only have column names in our set to group by that actually exist
 				$myGroupColumns = [];
 
-				foreach($this->m_groupColumns as $column) {
-					if(array_key_exists($column, $data[$start % self::ResultsCacheFileChunkSize])) {
+				foreach ($this->m_groupColumns as $column) {
+					if (array_key_exists($column, $data[$start % self::ResultsCacheFileChunkSize])) {
 						$myGroupColumns[] = $column;
 					}
 				}
 
 				$doGroups = 0 < count($myGroupColumns);
 
-				if($doGroups) {
+				if ($doGroups) {
 					// initialise the array of current grouping values for each grouping column
 					$currentGroupValues = [];
-					$groupLevels        = count($myGroupColumns);
+					$groupLevels = count($myGroupColumns);
 
-					for($i = 0; $i < $groupLevels; ++$i) {
+					for ($i = 0; $i < $groupLevels; ++$i) {
 						$currentGroupValues[$i] = null;
 					}
 
 					// work out how many columns our display table has
 					$groupHeadingColSpan = 0;
 
-					foreach($data[$start] as $column => $value) {
-						if(in_array($column, $this->m_hiddenColumns)) {
+					foreach ($data[$start] as $column => $value) {
+						if (in_array($column, $this->m_hiddenColumns)) {
 							continue;
 						}
 
-						if($hideGroupColumns && in_array($column, $myGroupColumns)) {
+						if ($hideGroupColumns && in_array($column, $myGroupColumns)) {
 							continue;
 						}
 
@@ -1913,36 +1955,33 @@ class ResultsPager extends PageElement {
 			$tableHtml = "<table" . $this->emitAttributes() . ">";
 			$this->removeClassName($myClassName);
 
-			if(!($flags & self::NoColumnTitles)) {
+			if (!($flags & self::NoColumnTitles)) {
 				$tableHtml .= "<thead><tr>";
 
-				if($doCheckboxes) {
+				if ($doCheckboxes) {
 					$tableHtml .= "<th></th>";
 				}
 
-				foreach($data[$start % self::ResultsCacheFileChunkSize] as $column => $value) {
-					if(!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
+				foreach ($data[$start % self::ResultsCacheFileChunkSize] as $column => $value) {
+					if (!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
 						continue;
 					}
 
-					if($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
+					if ($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
 						continue;
 					}
 
 					$tableHtml .= "<th>";
 
-					if(array_key_exists($column, $this->m_columnTitles)) {
-						if(is_string($this->m_columnTitles[$column])) {
+					if (array_key_exists($column, $this->m_columnTitles)) {
+						if (is_string($this->m_columnTitles[$column])) {
 							$tableHtml .= html($this->m_columnTitles[$column]);
-						}
-						else if($this->m_columnTitles[$column] instanceof PageElement) {
+						} else if ($this->m_columnTitles[$column] instanceof PageElement) {
 							$tableHtml .= $this->m_columnTitles[$column]->html();
-						}
-						else {
+						} else {
 							$tableHtml .= html($column);
 						}
-					}
-					else {
+					} else {
 						$tableHtml .= html($column);
 					}
 
@@ -1954,17 +1993,17 @@ class ResultsPager extends PageElement {
 
 			$tableHtml .= "<tbody>\n";
 
-			for($i = $start; $i < $end; ++$i) {
+			for ($i = $start; $i < $end; ++$i) {
 				// when there are no checked rows, do all rows
-				if($checkedRowsOnly && (!$noneCheckedMeansAll || 0 != $checkedRowCount) && !in_array($i, $this->m_checkedRows)) {
+				if ($checkedRowsOnly && (!$noneCheckedMeansAll || 0 != $checkedRowCount) && !in_array($i, $this->m_checkedRows)) {
 					continue;
 				}
 
-				if($i >= ($chunkIndex + 1) * self::ResultsCacheFileChunkSize) {
+				if ($i >= ($chunkIndex + 1) * self::ResultsCacheFileChunkSize) {
 					++$chunkIndex;
 					$data = self::readCachedResults($resultsId, $chunkIndex);
 
-					if(!is_array($data)) {
+					if (!is_array($data)) {
 						AppLog::error("invalid content in results cache (id = " . $this->resultsId() . "; chunk = $chunkIndex)", __FILE__, __LINE__, __FUNCTION__);
 						return "";
 					}
@@ -1973,37 +2012,36 @@ class ResultsPager extends PageElement {
 				// calculate the index into the chunk of data we've currently got loaded
 				$dataRowIndex = $i % self::ResultsCacheFileChunkSize;
 
-				if($doGroups) {
+				if ($doGroups) {
 					/* work out if the value of any of our grouping columns has changed */
-					for($groupLevel = 0; $groupLevel < $groupLevels; ++$groupLevel) {
-						if($data[$dataRowIndex][$myGroupColumns[$groupLevel]] != $currentGroupValues[$groupLevel]) {
+					for ($groupLevel = 0; $groupLevel < $groupLevels; ++$groupLevel) {
+						if ($data[$dataRowIndex][$myGroupColumns[$groupLevel]] != $currentGroupValues[$groupLevel]) {
 							break;
 						}
 					}
 
-					for(; $groupLevel < $groupLevels; ++$groupLevel) {
+					for (; $groupLevel < $groupLevels; ++$groupLevel) {
 						$currentGroupValues[$groupLevel] = $data[$dataRowIndex][$myGroupColumns[$groupLevel]];
-						$tableHtml                       .= "<tr class=\"groupheading\"><td class=\"groupheading-level-$groupLevel\" colspan=\"$groupHeadingColSpan\">" . $this->doColumnCallbacks($currentGroupValues[$groupLevel], $myGroupColumns[$groupLevel], $data[$dataRowIndex], "text/html") . "</td></tr>";
+						$tableHtml .= "<tr class=\"groupheading\"><td class=\"groupheading-level-$groupLevel\" colspan=\"$groupHeadingColSpan\">" . $this->doColumnCallbacks($currentGroupValues[$groupLevel], $myGroupColumns[$groupLevel], $data[$dataRowIndex], "text/html") . "</td></tr>";
 					}
 				}
 
-				if($haveRowIdTemplate) {
+				if ($haveRowIdTemplate) {
 					$tableHtml .= "<tr id=\"" . self::generateHtmlRowId($options["row_id_template"], $data[$dataRowIndex]) . "\">";
-				}
-				else {
+				} else {
 					$tableHtml .= "<tr>";
 				}
 
-				if($doCheckboxes) {
+				if ($doCheckboxes) {
 					$tableHtml .= "<td>" . $this->emitCheckbox($i) . "</td>";
 				}
 
-				foreach($data[$dataRowIndex] as $column => $value) {
-					if(!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
+				foreach ($data[$dataRowIndex] as $column => $value) {
+					if (!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
 						continue;
 					}
 
-					if($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
+					if ($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
 						continue;
 					}
 
@@ -2014,12 +2052,12 @@ class ResultsPager extends PageElement {
 			}
 
 			// where do the pager controls go?
-			if(1 < $maxPage) {
-				$indexTop    = 0x01;
+			if (1 < $maxPage) {
+				$indexTop = 0x01;
 				$indexBottom = 0x02;
 
-				if(isset($options["page_index_location"])) {
-					switch($options["page_index_location"]) {
+				if (isset($options["page_index_location"])) {
+					switch ($options["page_index_location"]) {
 						case "top":
 							$pageIndexLocation = $indexTop;
 							break;
@@ -2030,33 +2068,29 @@ class ResultsPager extends PageElement {
 
 						default:
 							AppLog::warning("invalid argument for \"page_index_location\" option, defaulting to \"both\"", __FILE__, __LINE__, __FUNCTION__);
-							// Note: intentional fallthrough
+						// Note: intentional fallthrough
 
 						case "both":
 							$pageIndexLocation = $indexTop | $indexBottom;
 							break;
 					}
-				}
-				else {
+				} else {
 					$pageIndexLocation = $indexTop | $indexBottom;
 				}
 
-				if($pageIndexLocation & $indexTop) {
+				if ($pageIndexLocation & $indexTop) {
 					$pageIndexTopHtml = $this->emitPageIndex(1, $maxPage);
-				}
-				else {
+				} else {
 					$pageIndexTopHtml = "";
 				}
 
-				if($pageIndexLocation & $indexBottom) {
+				if ($pageIndexLocation & $indexBottom) {
 					$pageIndexBottomHtml = (!empty($pageIndexTopHtml) ? $pageIndexTopHtml : $this->emitPageIndex(1, $maxPage));
-				}
-				else {
+				} else {
 					$pageIndexBottomHtml = "";
 				}
-			}
-			else {
-				$pageIndexTopHtml    = "";
+			} else {
+				$pageIndexTopHtml = "";
 				$pageIndexBottomHtml = "";
 			}
 
@@ -2065,7 +2099,7 @@ class ResultsPager extends PageElement {
 
 		$noData = $this->noDataContent();
 
-		if($noData instanceof PageElement) {
+		if ($noData instanceof PageElement) {
 			return $noData->html();
 		}
 
@@ -2079,7 +2113,8 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The escaped content.
 	 */
-	public static function escapeCsvCell(string $content): string {
+	public static function escapeCsvCell(string $content): string
+	{
 		return str_replace("\"", "\\\"", $content);
 	}
 
@@ -2093,23 +2128,24 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The CSV output.
 	 */
-	public function csv(int $flags = self::DefaultOutputFlags, array $options = []): string {
+	public function csv(int $flags = self::DefaultOutputFlags, array $options = []): string
+	{
 		// m_rowCount is set to the correct value either when setResults() is called or when the cached meta data is
 		// read in fromResultsId(). either way, if we have some results, m_rowCount is correct (unless cache is corrupt)
-		$max       = $this->m_rowCount;
+		$max = $this->m_rowCount;
 
-		if(1 > $max) {
+		if (1 > $max) {
 			return "";
 		}
 
 		// all data from db uses UTF-8. if charset is null, the data are passed on unmodified
-		if(is_array($options)) {
-			if(array_key_exists("charset", $options)) {
+		if (is_array($options)) {
+			if (array_key_exists("charset", $options)) {
 				// if charset is not recognised by iconv, a PHP Notice is emitted and false is returned; so in such
 				// cases, the encode function will return the original string umodified
 				$charset = "{$options["charset"]}//TRANSLIT";
 
-				if("ASCII//TRANSLIT" == strtoupper($charset)) {
+				if ("ASCII//TRANSLIT" == strtoupper($charset)) {
 					// if we don't ensure that the LC_CTYPE is not C or POSIX then transliteration will not work as
 					// expected. LC_CTYPE tells the locale system how to interpret character classes. since ASCII is
 					// based on US English letters, en_US.utf8 is the appropriate value because it will ensure that
@@ -2123,57 +2159,55 @@ class ResultsPager extends PageElement {
 					setlocale(LC_CTYPE, "en_US.utf8");
 				}
 
-				$charEncode = function($s) use ($charset) {
+				$charEncode = function ($s) use ($charset) {
 					$c = iconv("UTF-8", $charset, $s);
 					return (is_string($c) ? $c : $s);
 				};
 			}
 		}
 
-		if(!isset($charEncode)) {
-			$charEncode = function($s) {
+		if (!isset($charEncode)) {
+			$charEncode = function ($s) {
 				return $s;
 			};
 		}
 
 		$resultsId = $this->resultsId();
 
-		$checkedRowsOnly     = ($flags & self::CheckedRowsOnly);
+		$checkedRowsOnly = ($flags & self::CheckedRowsOnly);
 		$noneCheckedMeansAll = ($flags & self::NoCheckedRowsEqualsAllRows);
-		$checkedRowCount     = 0;
-		$doGroups            = !($flags & self::DontGroup);
-		$hideGroupColumns    = $doGroups && !($flags & self::DontHideGroupColumns);
+		$checkedRowCount = 0;
+		$doGroups = !($flags & self::DontGroup);
+		$hideGroupColumns = $doGroups && !($flags & self::DontHideGroupColumns);
 
-		if(!$checkedRowsOnly) {
-			$pageSize   = $this->pageSize();
+		if (!$checkedRowsOnly) {
+			$pageSize = $this->pageSize();
 			$pageNumber = $this->pageNumber();
 
-			if(is_null($pageSize)) {
+			if (is_null($pageSize)) {
 				$pageSize = self::DefaultPageSize;
-			}
-			else if(0 == $pageSize) {
+			} else if (0 == $pageSize) {
 				$pageSize = $max;
 			}
 
-			if(!$pageNumber) {
+			if (!$pageNumber) {
 				$pageNumber = self::DefaultPageNumber;
 			}
 
 			// calculate which rows to display
-			$end   = $pageNumber * $pageSize;
+			$end = $pageNumber * $pageSize;
 			$start = $end - $pageSize;
 
-			if($end > $max) {
+			if ($end > $max) {
 				$end = $max;
 			}
 
-			if($start > $max) {
+			if ($start > $max) {
 				$start = $max;
 			}
-		}
-		else {
-			$start           = 0;
-			$end             = $max;
+		} else {
+			$start = 0;
+			$end = $max;
 //			$maxPage         = 1;
 			$checkedRowCount = count($this->m_checkedRows);
 		}
@@ -2184,56 +2218,54 @@ class ResultsPager extends PageElement {
 		// emit column headings
 		$data = self::readCachedResults($resultsId, $chunkIndex);
 
-		if(!is_array($data)) {
+		if (!is_array($data)) {
 			AppLog::error("invalid content in results cache", __FILE__, __LINE__, __FUNCTION__);
 			return "";
 		}
 
-		if($doGroups) {
+		if ($doGroups) {
 			// ensure we only have column names in our set to group by that actually exist
 			$myGroupColumns = [];
 
-			foreach($this->m_groupColumns as $column) {
-				if(array_key_exists($column, $data[$start % self::ResultsCacheFileChunkSize])) {
+			foreach ($this->m_groupColumns as $column) {
+				if (array_key_exists($column, $data[$start % self::ResultsCacheFileChunkSize])) {
 					$myGroupColumns[] = $column;
 				}
 			}
 
 			$doGroups = 0 < count($myGroupColumns);
 
-			if($doGroups) {
+			if ($doGroups) {
 				// initialise the array of current grouping values for each grouping column
 				$currentGroupValues = [];
-				$groupLevels        = count($myGroupColumns);
+				$groupLevels = count($myGroupColumns);
 
-				for($i = 0; $i < $groupLevels; ++$i) {
+				for ($i = 0; $i < $groupLevels; ++$i) {
 					$currentGroupValues[$i] = null;
 				}
 			}
 		}
 
 		$content = "";
-		$csvRow  = [];
+		$csvRow = [];
 
-		if(!($flags & self::NoColumnTitles)) {
-			foreach($data[$start % self::ResultsCacheFileChunkSize] as $column => $value) {
-				if(!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
+		if (!($flags & self::NoColumnTitles)) {
+			foreach ($data[$start % self::ResultsCacheFileChunkSize] as $column => $value) {
+				if (!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
 					continue;
 				}
 
-				if($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
+				if ($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
 					continue;
 				}
 
-				if(array_key_exists($column, $this->m_columnTitles)) {
-					if(is_string($this->m_columnTitles[$column])) {
+				if (array_key_exists($column, $this->m_columnTitles)) {
+					if (is_string($this->m_columnTitles[$column])) {
 						$csvRow[] = $charEncode(self::escapeCsvCell($this->m_columnTitles[$column]));
-					}
-					else {
+					} else {
 						$csvRow[] = $charEncode(self::escapeCsvCell($column));
 					}
-				}
-				else {
+				} else {
 					$csvRow[] = $charEncode(self::escapeCsvCell($column));
 				}
 			}
@@ -2241,16 +2273,16 @@ class ResultsPager extends PageElement {
 			$content .= "\"" . implode("\",\"", $csvRow) . "\"\n";
 		}
 
-		for($i = $start; $i < $end; ++$i) {
-			if($checkedRowsOnly && (!$noneCheckedMeansAll || 0 != $checkedRowCount) && !in_array($i, $this->m_checkedRows)) {
+		for ($i = $start; $i < $end; ++$i) {
+			if ($checkedRowsOnly && (!$noneCheckedMeansAll || 0 != $checkedRowCount) && !in_array($i, $this->m_checkedRows)) {
 				continue;
 			}
 
-			if($i >= ($chunkIndex + 1) * self::ResultsCacheFileChunkSize) {
+			if ($i >= ($chunkIndex + 1) * self::ResultsCacheFileChunkSize) {
 				++$chunkIndex;
 				$data = self::readCachedResults($resultsId, $chunkIndex);
 
-				if(!is_array($data)) {
+				if (!is_array($data)) {
 					AppLog::error("invalid content in results cache (id = " . $this->resultsId() . "; chunk = $chunkIndex)", __FILE__, __LINE__, __FUNCTION__);
 					return "";
 				}
@@ -2259,28 +2291,28 @@ class ResultsPager extends PageElement {
 			// calculate the index into the chunk of data we've currently got loaded
 			$dataRowIndex = $i % self::ResultsCacheFileChunkSize;
 
-			if($doGroups) {
+			if ($doGroups) {
 				// work out if the value of any of our grouping columns has changed
-				for($groupLevel = 0; $groupLevel < $groupLevels; ++$groupLevel) {
-					if($data[$dataRowIndex][$this->m_groupColumns[$groupLevel]] != $currentGroupValues[$groupLevel]) {
+				for ($groupLevel = 0; $groupLevel < $groupLevels; ++$groupLevel) {
+					if ($data[$dataRowIndex][$this->m_groupColumns[$groupLevel]] != $currentGroupValues[$groupLevel]) {
 						break;
 					}
 				}
 
-				for(; $groupLevel < $groupLevels; ++$groupLevel) {
+				for (; $groupLevel < $groupLevels; ++$groupLevel) {
 					$currentGroupValues[$groupLevel] = $data[$dataRowIndex][$this->m_groupColumns[$groupLevel]];
-					$content                         .= "\"" . $charEncode($this->doColumnCallbacks($currentGroupValues[$groupLevel], $myGroupColumns[$groupLevel], $data[$dataRowIndex], "text/csv")) . "\"\n";
+					$content .= "\"" . $charEncode($this->doColumnCallbacks($currentGroupValues[$groupLevel], $myGroupColumns[$groupLevel], $data[$dataRowIndex], "text/csv")) . "\"\n";
 				}
 			}
 
 			$csvRow = [];
 
-			foreach($data[$dataRowIndex] as $column => $value) {
-				if(!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
+			foreach ($data[$dataRowIndex] as $column => $value) {
+				if (!($flags & self::DontHideColumns) && in_array($column, $this->m_hiddenColumns)) {
 					continue;
 				}
 
-				if($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
+				if ($doGroups && $hideGroupColumns && in_array($column, $myGroupColumns)) {
 					continue;
 				}
 
@@ -2290,7 +2322,7 @@ class ResultsPager extends PageElement {
 			$content .= "\"" . implode("\",\"", $csvRow) . "\"\n";
 		}
 
-		if(isset($oldLocale)) {
+		if (isset($oldLocale)) {
 			setlocale(LC_CTYPE, $oldLocale);
 		}
 
@@ -2308,8 +2340,9 @@ class ResultsPager extends PageElement {
 	 *
 	 * @return string The MIME type data, or an empty string if the MIME type is not supported.
 	 */
-	public function pagedData(string $mimeType = "text/html", int $flags = self::DefaultOutputFlags, array $options = []): string {
-		if(array_key_exists($mimeType, self::$s_supportedMimeTypes)) {
+	public function pagedData(string $mimeType = "text/html", int $flags = self::DefaultOutputFlags, array $options = []): string
+	{
+		if (array_key_exists($mimeType, self::$s_supportedMimeTypes)) {
 			$method = self::$s_supportedMimeTypes[$mimeType];
 			return $this->$method($flags, $options);
 		}
